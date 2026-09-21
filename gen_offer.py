@@ -67,7 +67,7 @@ def norm_marca(v):
     mk=str(v or "").strip().upper().replace(" ","")
     if mk in ("Q-SUN","QSUN"): return "Q-SUN"
     if mk=="SEG": return "SEG"
-    return "Q-SUN"  # por defecto
+    raise ValueError(f"Marca desconocida: '{v}'. Debe ser Q-SUN o SEG.")
 
 def set_cell(cell, text, bold=False, size=10, align="left", color=None):
     cell.text=""
@@ -96,11 +96,18 @@ def row_height(row, h=340):
     trPr=row._tr.get_or_add_trPr()
     tr=OxmlElement('w:trHeight'); tr.set(qn('w:val'),str(h)); tr.set(qn('w:hRule'),'atLeast'); trPr.append(tr)
 
+def set_default_font(doc, name="Arial"):
+    st=doc.styles['Normal']
+    st.font.name=name
+    rpr=st.element.get_or_add_rPr(); rf=rpr.get_or_add_rFonts()
+    for a in ('w:ascii','w:hAnsi','w:cs'): rf.set(qn(a),name)
+
 def generate(data, out_path):
     data["marca"]=norm_marca(data.get("marca"))   # acepta 'q-sun', ' SEG ', etc.
     b=BRANDS[data["marca"]]
     nf=b["numfmt"]; RED=RGBColor(0xC0,0x00,0x00)
     d=Document()
+    set_default_font(d, "Times New Roman")   # tipografia formal (serif)
     sec=d.sections[0]
     for m in ("top_margin","bottom_margin","left_margin","right_margin"): setattr(sec,m,Cm(1.6))
     # logo
@@ -200,9 +207,16 @@ def generate(data, out_path):
         return pp
     spaced("Payment terms:",size=12,bold=True,after=14)
     spaced("1.1   The Buyer shall pay 10% of the total amount in advance and the remaining 90% against presentation of the Bill of Lading (B/L).",after=12)
-    spaced("1.2   All bank charges occurring in Remitter's country shall be borne by the Remitter, while all bank charges occurring in Receiver's country shall be borne by the Receiver.",after=12)
+    spaced("1.2   The Buyer shall bear all bank charges incurred in the remitting country. The Seller shall bear all bank charges incurred in the receiving country.",after=12)
     spaced("1.3   Please use the account:",after=10)
-    for bl in b["bank"]: spaced(bl, after=6)
+    # datos bancarios en tabla invisible para alinear etiqueta / valor
+    bt=d.add_table(rows=len(b["bank"]),cols=2)
+    for i,bl in enumerate(b["bank"]):
+        parts=bl.split("\t")
+        set_cell(bt.rows[i].cells[0], parts[0], size=10)
+        set_cell(bt.rows[i].cells[1], parts[1] if len(parts)>1 else "", size=10)
+    bt.columns[0].width=Cm(3.4); bt.columns[1].width=Cm(11)
+    cell_margins(bt, top=10, bottom=10, left=0, right=0)
     d.add_paragraph(); d.add_paragraph()
     spaced("Shipment Terms:",size=12,bold=True,after=14)
     spaced("2.1   Delivery Arrangement: Incoterms",after=10)
