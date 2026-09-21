@@ -8,7 +8,10 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
-ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
+_BASE = os.path.dirname(os.path.abspath(__file__))
+ASSETS = os.path.join(_BASE, "assets")
+if not os.path.isdir(ASSETS):
+    ASSETS = _BASE   # imagenes en la misma carpeta (raiz del repo)
 
 BRANDS = {
  "Q-SUN": {
