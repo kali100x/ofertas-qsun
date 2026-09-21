@@ -22,7 +22,7 @@ BRANDS = {
    "bank": ["Bank's name:\tBanco Santander","Account Name:\tJoresp Energy, S.L.",
             "Account No:\tES80 0049 4470 3523 1003 7467","Bic/Swift:\tBSCHESMMXXX",
             "Bank Address:\tCamino del Pilón, 61, 50011 Zaragoza","Account Currency:\tEUR"],
-   "shipment": ["2.1  Delivery Arrangement: Incoterms","DDP (Madrid, Spain)            FOB (China)","CIF (Rotterdam).","","The delivery confirmation."],
+   "shipment_tail": [],
    "warranty": None,
    "numfmt": "eu",
    "footer": None, "footer_img": None,
@@ -35,7 +35,7 @@ BRANDS = {
    "bank": ["Bank's name:\tBanco Santander","Account Name:\tJoresp Energy, S.L.",
             "Account No:\tES80 0049 4470 3523 1003 7467","Bic/Swift:\tBSCHESMMXXX",
             "Bank Address:\tCamino del Pilón, 61, 50011 Zaragoza","Account Currency:\tEUR"],
-   "shipment": ["2.1  Delivery Arrangement:","The price is under DDP.","","- 10 weeks of order confirmation."],
+   "shipment_tail": ["- 10 weeks of order confirmation."],
    "warranty": None,
    "numfmt": "us",
    "footer": None, "footer_img": None,
@@ -55,6 +55,19 @@ def fmt3(n, kind):
     if kind=="eu":
         return f"{n:,.3f}".replace(",","X").replace(".",",").replace("X",".")
     return f"{n:,.3f}"
+
+def fmt_price(n, kind):
+    # muestra el precio con 3 o 4 decimales, exactamente el valor usado en el calculo
+    s=f"{n:.4f}"
+    if s.endswith("0"): s=s[:-1]   # 0,1080 -> 0,108 ; 0,1085 se queda con 4
+    if kind=="eu": s=s.replace(".",",")
+    return s
+
+def norm_marca(v):
+    mk=str(v or "").strip().upper().replace(" ","")
+    if mk in ("Q-SUN","QSUN"): return "Q-SUN"
+    if mk=="SEG": return "SEG"
+    return "Q-SUN"  # por defecto
 
 def set_cell(cell, text, bold=False, size=10, align="left", color=None):
     cell.text=""
@@ -84,6 +97,7 @@ def row_height(row, h=340):
     tr=OxmlElement('w:trHeight'); tr.set(qn('w:val'),str(h)); tr.set(qn('w:hRule'),'atLeast'); trPr.append(tr)
 
 def generate(data, out_path):
+    data["marca"]=norm_marca(data.get("marca"))   # acepta 'q-sun', ' SEG ', etc.
     b=BRANDS[data["marca"]]
     nf=b["numfmt"]; RED=RGBColor(0xC0,0x00,0x00)
     d=Document()
@@ -100,7 +114,7 @@ def generate(data, out_path):
         pp.paragraph_format.space_after=Pt(0)
     # title
     t=d.add_paragraph(); t.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    titulo="PROFORMA INVOICE" if str(data.get("tipo","quotation")).lower().startswith("pro") else "QUOTATION"
+    titulo="PROFORMA INVOICE" if str(data.get("tipo","quotation")).strip().lower().startswith("pro") else "QUOTATION"
     rt=t.add_run(titulo); rt.bold=True; rt.font.size=Pt(22)
     d.add_paragraph()
     # buyer/seller side by side (one 1x2 table, each cell holds a sub-table)
@@ -145,14 +159,15 @@ def generate(data, out_path):
     total_amount=0
     for i,ln in enumerate(lines):
         row=tb.rows[2+i].cells
+        precio=round(float(ln["precio"]),4)     # mismo valor para mostrar y calcular
         wps=ln["pcs"]*ln["peak"]
-        amount=wps*ln["precio"]
+        amount=wps*precio
         total_amount+=amount
         set_cell(row[0],ln["item"],align="center",size=9)
         set_cell(row[1],fmt(ln["peak"],nf),align="center",size=9)
         set_cell(row[2],fmt(ln["pcs"],nf),align="center",size=9)
         set_cell(row[3],fmt(wps,nf),align="center",size=9)
-        set_cell(row[4],fmt3(ln["precio"],nf)+" €",align="center",size=9)
+        set_cell(row[4],fmt_price(precio,nf)+" €",align="center",size=9)
         set_cell(row[5],ln["incoterm"],align="center",size=9)
         set_cell(row[6],fmt(amount,nf,money=True)+" €",align="center",size=9)
     # bloque de totales: SIEMPRE presente (mismos apartados en ambas marcas)
@@ -184,15 +199,20 @@ def generate(data, out_path):
         pp.paragraph_format.space_after=Pt(after); pp.paragraph_format.space_before=Pt(0)
         return pp
     spaced("Payment terms:",size=12,bold=True,after=14)
-    spaced("1.1   The Buyer shall pay.",after=12)
+    spaced("1.1   The Buyer shall pay 10% of the total amount in advance and the remaining 90% against presentation of the Bill of Lading (B/L).",after=12)
     spaced("1.2   All bank charges occurring in Remitter's country shall be borne by the Remitter, while all bank charges occurring in Receiver's country shall be borne by the Receiver.",after=12)
     spaced("1.3   Please use the account:",after=10)
     for bl in b["bank"]: spaced(bl, after=6)
     d.add_paragraph(); d.add_paragraph()
     spaced("Shipment Terms:",size=12,bold=True,after=14)
-    for sl in b["shipment"]:
-        if sl=="": d.add_paragraph()
-        else: spaced(sl, after=10)
+    spaced("2.1   Delivery Arrangement: Incoterms",after=10)
+    # incoterms reales de esta oferta (una linea por incoterm)
+    for ln in lines:
+        spaced(ln["incoterm"], after=6)
+    d.add_paragraph()
+    spaced("The estimated delivery date will be confirmed in writing for each order, in accordance with the agreed Incoterm.",after=10)
+    for extra in b.get("shipment_tail", []):
+        spaced(extra, after=10)
     d.add_paragraph()
     spaced("- Validity of this offer is 10 days.",after=24)
     spaced("Acceptance by Buyer & Date (Signature):",after=6)
