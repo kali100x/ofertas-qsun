@@ -15,9 +15,11 @@ if not os.path.isdir(ASSETS):
 
 GREY = "EDEDED"        # (reservado) fondo cabeceras
 GREY_TOTAL = "DFF3D6"  # (reservado) verde claro
-TOTAL_BG   = "F0F0F0"  # fondo suave (gris) para la fila Total
+TOTAL_BG   = "EDEDED"  # fondo gris para la fila Total
+WARR_BG    = "FCE4E2"  # rojo clarito para las casillas de garantia
 BORDER = "000000"      # bordes negros finos, bien definidos
-FONT = "Liberation Sans"  # profesional, estable en Render (equivale a Arial)
+FONT = "Times New Roman"  # en Render LibreOffice usa Liberation Serif (mismas medidas)
+W = 16.5                  # ancho util en cm (carta, margenes 2,5 cm)
 
 BRANDS = {
  "Q-SUN": {
@@ -45,11 +47,11 @@ T = {
  "es": {
   "title":"Oferta comercial", "offer_no":"N.º de oferta", "date":"Fecha",
   "title_proforma":"Factura proforma", "offer_no_proforma":"N.º de proforma", "foot_proforma":"Proforma",
-  "buyer":"Comprador", "seller":"Vendedor",
-  "add":"Dirección","phone":"Teléfono","taxid":"NIF","contact":"Contacto","email":"Email",
+  "buyer":"Comprador:", "seller":"Vendedor:",
+  "add":"Dirección:","phone":"Teléfono:","taxid":"NIF:","contact":"Contacto:","email":"Email:",
   "supply":"Detalle del suministro",
   "h_item":"Artículo","h_modp":"Potencia módulo (Wp)","h_qty":"Cantidad (uds)",
-  "h_totp":"Potencia total (Wp)","h_price":"Precio (€/Wp)","h_inco":"Incoterm","h_amount":"Importe sin IVA (€)",
+  "h_totp":"Potencia total (Wp)","h_price":"Precio (€/Wp)","h_inco":"Incoterm","h_amount":"Importe sin IVA",
   "t_base":"Importe sin IVA","t_iva":"IVA 21%","t_total":"Total",
   "t_adv":"Anticipo 10%","t_bal":"Saldo 90% contra B/L",
   "pay_title":"Condiciones de pago",
@@ -63,17 +65,17 @@ T = {
   "prod_title":"Producto y garantías","w_material":"Garantía de material","w_power":"Garantía de potencia lineal","w_years":"años",
   "w_note":"Garantías conforme a las condiciones del fabricante aplicables al modelo ofertado.",
   "datasheet":"Ficha técnica disponible bajo petición.","datasheet_att":"Ficha técnica adjunta.",
-  "accept":"Aceptación del comprador","a_name":"Nombre","a_pos":"Cargo","a_date":"Fecha","a_sign":"Firma",
+  "accept":"Aceptación del comprador","a_name":"Nombre:","a_pos":"Cargo:","a_date":"Fecha:","a_sign":"Firma:",
   "page":"Página","of":"de",
  },
  "en": {
   "title":"Quotation", "offer_no":"Quotation No.", "date":"Date",
   "title_proforma":"Proforma Invoice", "offer_no_proforma":"Proforma No.", "foot_proforma":"Proforma",
-  "buyer":"Buyer", "seller":"Seller",
-  "add":"Address","phone":"Phone","taxid":"Tax ID","contact":"Contact","email":"Email",
+  "buyer":"Buyer:", "seller":"Seller:",
+  "add":"Address:","phone":"Phone:","taxid":"Tax ID:","contact":"Contact:","email":"Email:",
   "supply":"Supply details",
   "h_item":"Item","h_modp":"Module power (Wp)","h_qty":"Quantity (pcs)",
-  "h_totp":"Total power (Wp)","h_price":"Price (€/Wp)","h_inco":"Incoterm","h_amount":"Amount excl. VAT (€)",
+  "h_totp":"Total power (Wp)","h_price":"Price (€/Wp)","h_inco":"Incoterm","h_amount":"Amount excl. VAT",
   "t_base":"Amount excl. VAT","t_iva":"VAT 21%","t_total":"Total",
   "t_adv":"10% advance payment","t_bal":"90% balance against B/L",
   "pay_title":"Payment terms",
@@ -87,7 +89,7 @@ T = {
   "prod_title":"Product and warranties","w_material":"Material warranty","w_power":"Linear power warranty","w_years":"years",
   "w_note":"Warranties subject to the manufacturer's conditions applicable to the quoted model.",
   "datasheet":"Datasheet available on request.","datasheet_att":"Datasheet attached.",
-  "accept":"Buyer's acceptance","a_name":"Name","a_pos":"Position","a_date":"Date","a_sign":"Signature",
+  "accept":"Buyer's acceptance","a_name":"Name:","a_pos":"Position:","a_date":"Date:","a_sign":"Signature:",
   "page":"Page","of":"of",
  },
 }
@@ -109,7 +111,7 @@ def nprice(n):
     return s.replace(".",",")
 
 # ---------- helpers docx ----------
-def _run(p, text, bold=False, size=10.5, align=None, color=None):
+def _run(p, text, bold=False, size=10, align=None, color=None):
     if align is not None: p.alignment=align
     r=p.add_run(text); r.bold=bold; r.font.size=Pt(size); r.font.name=FONT
     if color: r.font.color.rgb=color
@@ -169,7 +171,7 @@ def tbl_borders(tb, color=BORDER, sz=4):
     tb._tbl.tblPr.append(borders)
 
 def set_default_font(doc, name=FONT):
-    st=doc.styles['Normal']; st.font.name=name; st.font.size=Pt(10.5)
+    st=doc.styles['Normal']; st.font.name=name; st.font.size=Pt(10)
     rpr=st.element.get_or_add_rPr(); rf=rpr.get_or_add_rFonts()
     for a in ('w:ascii','w:hAnsi','w:cs'): rf.set(qn(a),name)
 
@@ -192,12 +194,12 @@ def _field(p, code, size=9):
 def add_footer(section, prefix, page_word, of_word):
     p=section.footer.paragraphs[0]; p.text=""
     p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    _run(p, f"{prefix}   ·   {page_word} ", size=9)
+    _run(p, f"{prefix}   ·   {page_word} ", size=8)
     _field(p, "PAGE", size=9)
     _run(p, f" {of_word} ", size=9)
     _field(p, "NUMPAGES", size=9)
 
-def para(d, text, bold=False, size=10.5, after=6, before=0, align=WD_ALIGN_PARAGRAPH.LEFT, indent=0):
+def para(d, text, bold=False, size=10, after=6, before=0, align=WD_ALIGN_PARAGRAPH.LEFT, indent=0):
     p=d.add_paragraph(); p.alignment=align
     p.paragraph_format.space_after=Pt(after); p.paragraph_format.space_before=Pt(before)
     if indent: p.paragraph_format.left_indent=Cm(indent)
@@ -209,7 +211,7 @@ def section_title(d, text, size=12, after=8, before=0, page_break=False):
     p=d.add_paragraph()
     if page_break: p.paragraph_format.page_break_before=True
     p.paragraph_format.space_after=Pt(after); p.paragraph_format.space_before=Pt(before)
-    p.paragraph_format.right_indent=Cm(0.2)   # la regla acaba a la altura de las tablas (17,6 cm)
+    p.paragraph_format.right_indent=Cm(0)
     _run(p, text, bold=True, size=size)
     pPr=p._p.get_or_add_pPr()
     pbdr=OxmlElement('w:pBdr')
@@ -251,8 +253,8 @@ def generate(data, out_path):
 
     d=Document(); set_default_font(d)
     sec=d.sections[0]
-    for m in ("top_margin","bottom_margin"): setattr(sec,m,Cm(1.6))
-    for m in ("left_margin","right_margin"): setattr(sec,m,Cm(1.0))   # margenes laterales menores: cuadros mas anchos
+    for m in ("top_margin","bottom_margin"): setattr(sec,m,Cm(2.2))
+    for m in ("left_margin","right_margin"): setattr(sec,m,Cm(2.5))   # margenes laterales amplios
 
     # pie: Oferta/Proforma 20982 · Página 1 de 2
     add_footer(sec, f"{foot_word} {data['num_oferta']}", tr['page'], tr['of'])
@@ -263,33 +265,33 @@ def generate(data, out_path):
     except Exception: pass
 
     # titulo + (nº y fecha justo debajo)
-    para(d, doc_title, bold=True, size=21, after=2, align=WD_ALIGN_PARAGRAPH.CENTER)
+    para(d, doc_title, bold=True, size=18, after=2, align=WD_ALIGN_PARAGRAPH.CENTER)
     sub=d.add_paragraph(); sub.alignment=WD_ALIGN_PARAGRAPH.CENTER
     sub.paragraph_format.space_after=Pt(12)   # aire antes de los cuadros
-    _run(sub, f"{doc_offerno}: ", size=11); _run(sub, str(data['num_oferta']), bold=True, size=11)
-    _run(sub, f"      {tr['date']}: ", size=11); _run(sub, str(data['fecha']), bold=True, size=11)
+    _run(sub, f"{doc_offerno}: ", size=10); _run(sub, str(data['num_oferta']), size=10)
+    _run(sub, f"      {tr['date']}: ", size=10); _run(sub, str(data['fecha']), size=10)
 
     # comprador / vendedor
     # comprador y vendedor en UNA sola tabla (celdas idénticas), con hueco central
     pt=d.add_table(rows=6,cols=5)
-    set_widths(pt, [2.7, 6.75, 0.1, 2.7, 6.75], fixed=True)   # 19.0 cm; columnas de datos mas anchas
-    cell_margins(pt, top=80, bottom=80, left=180, right=150)   # bastante aire dentro de las celdas
+    set_widths(pt, [2.3, 5.8, 0.3, 2.3, 5.8], fixed=True)   # 16.5 cm
+    cell_margins(pt, top=60, bottom=60, left=110, right=110)   # bastante aire dentro de las celdas
     bu=data["comprador"]; se=b["seller"]
     labL=[tr["buyer"],tr["add"],tr["contact"],tr["phone"],tr["taxid"],tr["email"]]
     labR=[tr["seller"],tr["add"],tr["contact"],tr["phone"],tr["taxid"],tr["email"]]
     valL=[bu["name"],bu["add"],bu["contact"],bu["tel"],bu["cif"],bu["email"]]
     valR=[se["name"],se["add"],se["contact"],se["tel"],se["cif"],se["email"]]
     for i in range(6):
-        set_cell(pt.rows[i].cells[0], labL[i], size=10, bold=True)         # etiquetas en negrita
+        set_cell(pt.rows[i].cells[0], labL[i], size=10)                      # etiquetas normales
         set_cell(pt.rows[i].cells[1], valL[i], size=10, bold=(i==0))       # todo mismo tamano (10)
-        set_cell(pt.rows[i].cells[3], labR[i], size=10, bold=True)         # etiquetas en negrita
+        set_cell(pt.rows[i].cells[3], labR[i], size=10)                      # etiquetas normales
         set_cell(pt.rows[i].cells[4], valR[i], size=10, bold=(i==0))
         for c in (0,1,3,4):
             cell_borders(pt.rows[i].cells[c])                              # bordes negros solo en los dos cuadros
-            for p in pt.rows[i].cells[c].paragraphs: p.paragraph_format.line_spacing=1.2   # lineas mas separadas
-        row_height(pt.rows[i], 560 if i in (1,5) else 380)    # mas altura: filas mas holgadas
+            for p in pt.rows[i].cells[c].paragraphs: p.paragraph_format.line_spacing=1.0
+        row_height(pt.rows[i], 330)
     para(d,"",after=8)    # separacion con Detalle del suministro
-    section_title(d, tr["supply"], after=6)                     # titulo del detalle con regla
+    section_title(d, tr["supply"], size=11.5, after=6)                     # titulo del detalle con regla
 
     # tabla de producto + resumen economico INTEGRADO (una sola tabla, protagonista)
     lines=data["lineas"]; single=(len(lines)==1)
@@ -300,16 +302,16 @@ def generate(data, out_path):
     tb=d.add_table(rows=1+n_prod+n_sum, cols=7)
     hdr=[tr["h_item"],tr["h_modp"],tr["h_qty"],tr["h_totp"],tr["h_price"],tr["h_inco"],tr["h_amount"]]
     for j,h in enumerate(hdr):
-        set_cell(tb.rows[0].cells[j],h,bold=True,size=10,align="center")   # cabecera clara (sin fondo)
-    aligns=["center","right","right","right","right","center","right"]
+        set_cell(tb.rows[0].cells[j],h,bold=True,size=9.5,align="center")   # cabecera clara (sin fondo)
+    aligns=["left","right","right","right","right","center","right"]
     base=0.0
     for i,ln in enumerate(lines):
         precio=round(float(ln["precio"]),4)
         totp=ln["pcs"]*ln["peak"]; amount=totp*precio; base+=amount
         vals=[ln["item"], nint(ln["peak"]), nint(ln["pcs"]), nint(totp),
-              nprice(precio), ln["incoterm"], nmoney(amount)]
-        bolds=[True, False, False, False, False, False, False]  # solo el modelo en negrita
-        sizes=[11.5, 11.5, 10, 10, 11.5, 10, 10]               # modelo/potencia/precio algo mayores
+              nprice(precio)+" €", ln["incoterm"], nmoney(amount)+" €"]
+        bolds=[False]*7
+        sizes=[10]*7                                            # todos los numeros iguales
         for j,v in enumerate(vals):
             set_cell(tb.rows[1+i].cells[j],v,size=sizes[j],align=aligns[j],bold=bolds[j])
     # resumen economico
@@ -320,34 +322,31 @@ def generate(data, out_path):
     else:
         svals=["—","—","—","—","—"]
     slabels=[tr["t_base"],tr["t_iva"],tr["t_total"],tr["t_adv"],tr["t_bal"]]
-    set_widths(tb, [5.15, 2.1, 2.05, 2.3, 1.7, 2.2, 3.5], fixed=True)   # 19.0 cm
+    set_widths(tb, [3.6, 1.8, 1.8, 2.1, 1.7, 2.1, 3.4], fixed=True)   # 16.5 cm
     r0=1+n_prod
     for i in range(n_sum):
         r=tb.rows[r0+i]; istotal=(i==2)
-        tshade = TOTAL_BG if istotal else None                                    # fondo suave (gris) solo en Total
-        set_cell(r.cells[0], slabels[i], size=(11 if istotal else 10), bold=istotal, align="left", shade=tshade)
-        set_cell(r.cells[6], (svals[i]+" €" if svals[i]!="—" else svals[i]), size=(11 if istotal else 10), bold=istotal, align="right", shade=tshade)
-        r.cells[1].merge(r.cells[5])   # zona central en blanco, importe alineado a la derecha
-        if istotal: _shade(r.cells[1], TOTAL_BG)                                   # fondo tambien en la zona central
-        # quitar SOLO las verticales internas (columnas); se mantienen horizontales y recuadro
-        cell_hide_borders(r.cells[0], ('right',))
-        cell_hide_borders(r.cells[1], ('left','right'))
+        tshade = TOTAL_BG if istotal else None                                    # fondo gris solo en Total
+        lab=r.cells[0].merge(r.cells[5])   # concepto ocupa hasta la columna del importe (sin linea vertical)
+        set_cell(lab, slabels[i], size=10, bold=istotal, align="left", shade=tshade)
+        set_cell(r.cells[6], (svals[i]+" €" if svals[i]!="—" else svals[i]), size=10, bold=istotal, align="right", shade=tshade)
+        cell_hide_borders(lab, ('right',))
         cell_hide_borders(r.cells[6], ('left',))
-    cell_margins(tb, top=85, bottom=85, left=110, right=110)
+    cell_margins(tb, top=60, bottom=60, left=100, right=100)
     for k,rr in enumerate(tb.rows):
         if k==0: h=340                       # cabecera
-        elif k<1+n_items: h=500              # fila(s) de producto (protagonista)
+        elif k<1+n_items: h=420              # fila(s) de producto
         elif k<1+n_prod: h=380               # fila(s) en blanco
-        else: h=250                          # resumen economico
+        else: h=340                          # resumen economico
         row_height(rr, h)
     tbl_borders(tb)
 
     # producto y garantias (primera hoja, tras el resumen)
     para(d,"",after=6)                                       # pequeno espacio con la tabla superior
-    section_title(d, tr["prod_title"], after=4, before=8)    # separacion respecto a la tabla
+    section_title(d, tr["prod_title"], size=11.5, after=4, before=10)    # separacion respecto a la tabla
     prod_prefix = f"{lines[0]['item']} ({nint(lines[0]['peak'])} W) " if lines else ""
     prod_line = (prod_prefix + str(data.get("descripcion") or "")).strip()
-    if prod_line: para(d, prod_line, size=10.5, after=4)     # modelo (Wp) + descripcion, misma linea, sin negrita
+    if prod_line: para(d, prod_line, size=10, after=4)     # modelo (Wp) + descripcion, misma linea, sin negrita
     gm = data.get("garantia_material", 15); gp = data.get("garantia_potencia", 30)
     wr=[(tr["w_material"],gm),(tr["w_power"],gp)]
     wr=[(lab,y) for lab,y in wr if y not in (None,"",0)]
@@ -357,12 +356,13 @@ def generate(data, out_path):
             c=wt.rows[0].cells[i]; c.text=""
             p=c.paragraphs[0]; p.alignment=WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_after=Pt(0); p.paragraph_format.space_before=Pt(0)
-            _run(p, str(y), bold=True, size=22); _run(p, " "+tr["w_years"], bold=True, size=12)
+            _run(p, str(y), bold=True, size=16); _run(p, " "+tr["w_years"], bold=True, size=10)
             p2=c.add_paragraph(); p2.alignment=WD_ALIGN_PARAGRAPH.CENTER
             p2.paragraph_format.space_before=Pt(2); p2.paragraph_format.space_after=Pt(0)
-            _run(p2, lab, size=10)
+            _run(p2, lab, bold=True, size=10)
             c.vertical_alignment=WD_ALIGN_VERTICAL.CENTER
-        set_widths(wt, [19.0/len(wr)]*len(wr), fixed=True)
+            _shade(c, WARR_BG)
+        set_widths(wt, [W/len(wr)]*len(wr), fixed=True)
         cell_margins(wt, top=55, bottom=55, left=110, right=110)
         for rr in wt.rows: row_height(rr, 360)
         tbl_borders(wt)
@@ -370,47 +370,47 @@ def generate(data, out_path):
     para(d, tr["w_note"], size=10, after=2)                                   # nota de garantias
 
     # pagina 2: empieza en Condiciones de pago (salto antes del titulo)
-    section_title(d, tr["pay_title"], after=10, page_break=True)
-    para(d, "1.1   "+tr["pay1"], size=10.5, after=10)
-    para(d, "1.2   "+tr["pay2"], size=10.5, after=10)
-    para(d, "1.3   "+tr["pay3"], size=10.5, after=6)
+    section_title(d, tr["pay_title"], size=11.5, after=10, page_break=True)
+    para(d, "1.1   "+tr["pay1"], size=10, after=10)
+    para(d, "1.2   "+tr["pay2"], size=10, after=10)
+    para(d, "1.3   "+tr["pay3"], size=10, after=6)
     bt=d.add_table(rows=len(b["bank"]),cols=2)
     for i,(k,v) in enumerate(b["bank"]):
-        set_cell(bt.rows[i].cells[0], BANK_LABELS[k][lang], size=10, bold=True)
+        set_cell(bt.rows[i].cells[0], BANK_LABELS[k][lang]+":", size=10)
         set_cell(bt.rows[i].cells[1], v, size=10)
-    set_widths(bt, [4.6, 14.4], fixed=True)   # recuadro a todo el ancho
+    set_widths(bt, [4.3, W-4.3], fixed=True)   # recuadro a todo el ancho
     cell_margins(bt, top=55, bottom=55, left=110, right=110)
     for rr in bt.rows: row_height(rr, 300)
-    tbl_borders(bt); hide_vert_2col(bt)        # recuadro con horizontales, sin vertical interna
+    tbl_borders(bt)                            # recuadro completo
 
     para(d,"",after=12)
     # condiciones de entrega
-    section_title(d, tr["ship_title"], after=10)
+    section_title(d, tr["ship_title"], size=11.5, after=10)
     if single:
-        para(d, "2.1   "+tr["ship_one"]+" "+str(lines[0]["incoterm"]), size=10.5, after=10)
+        para(d, "2.1   "+tr["ship_one"]+" "+str(lines[0]["incoterm"]), size=10, after=10)
     else:
-        para(d, "2.1   "+tr["ship_arr"], size=10.5, after=4)
+        para(d, "2.1   "+tr["ship_arr"], size=10, after=4)
         for ln in lines:
-            para(d, "        • "+str(ln["incoterm"]), size=10.5, after=2)
+            para(d, "        • "+str(ln["incoterm"]), size=10, after=2)
         para(d,"",after=4)
-    para(d, "2.2   "+tr["ship_t1"], size=10.5, after=10)
-    para(d, "2.3   "+tr["validity"], size=10.5, after=16)
+    para(d, "2.2   "+tr["ship_t1"], size=10, after=10)
+    para(d, "2.3   "+tr["validity"], size=10, after=16)
 
     # separacion antes de la aceptacion (hacia la parte inferior)
     esp=d.add_paragraph(); esp.paragraph_format.space_before=Pt(72)
 
     # aceptacion: casillas de firma enmarcadas (aspecto profesional)
-    section_title(d, tr["accept"], after=14)
+    section_title(d, tr["accept"], size=11.5, after=14)
     at=d.add_table(rows=2,cols=2)
     cells=[(tr["a_name"],tr["a_sign"]),(tr["a_pos"],tr["a_date"])]
     for i,(k1,k2) in enumerate(cells):
-        set_cell(at.rows[i].cells[0], k1, size=10.5, bold=True)
-        set_cell(at.rows[i].cells[1], k2, size=10.5, bold=True)
+        set_cell(at.rows[i].cells[0], k1, size=10)
+        set_cell(at.rows[i].cells[1], k2, size=10)
         for c in (at.rows[i].cells[0], at.rows[i].cells[1]):
             c.vertical_alignment=WD_ALIGN_VERTICAL.TOP
-    set_widths(at, [9.5, 9.5], fixed=True)
-    cell_margins(at, top=120, bottom=520, left=140, right=140)   # espacio amplio para firmar
-    for rr in at.rows: row_height(rr, 1000)
+    set_widths(at, [W/2, W/2], fixed=True)
+    cell_margins(at, top=100, bottom=400, left=110, right=110)   # espacio amplio para firmar
+    for rr in at.rows: row_height(rr, 900)
     tbl_borders(at)
 
     d.save(out_path)
