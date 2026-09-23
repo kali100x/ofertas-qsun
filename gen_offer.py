@@ -260,7 +260,7 @@ def generate(data, out_path):
     add_footer(sec, f"{foot_word} {data['num_oferta']}", tr['page'], tr['of'])
 
     # logo
-    p=d.add_paragraph(); p.paragraph_format.space_after=Pt(2)
+    p=d.add_paragraph(); p.paragraph_format.space_after=Pt(28)   # aire entre logo y titulo
     try: p.add_run().add_picture(os.path.join(ASSETS,b["logo"]), width=Cm(b["logo_w"]))
     except Exception: pass
 
@@ -346,7 +346,7 @@ def generate(data, out_path):
     section_title(d, tr["prod_title"], size=11.5, after=4, before=10)    # separacion respecto a la tabla
     prod_prefix = f"{lines[0]['item']} ({nint(lines[0]['peak'])} W) " if lines else ""
     prod_line = (prod_prefix + str(data.get("descripcion") or "")).strip()
-    if prod_line: para(d, prod_line, size=10, after=4)     # modelo (Wp) + descripcion, misma linea, sin negrita
+    if prod_line: para(d, prod_line, size=10, after=12)     # modelo (Wp) + descripcion, misma linea, sin negrita
     gm = data.get("garantia_material", 15); gp = data.get("garantia_potencia", 30)
     wr=[(tr["w_material"],gm),(tr["w_power"],gp)]
     wr=[(lab,y) for lab,y in wr if y not in (None,"",0)]
