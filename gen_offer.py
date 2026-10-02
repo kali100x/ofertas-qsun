@@ -60,6 +60,8 @@ T = {
   "pay3":"Datos bancarios:",
   "ship_title":"Condiciones de entrega","ship_arr":"Incoterms acordados:","ship_one":"Incoterm acordado:",
   "ship_t1":"Plazo de entrega estimado: 10 a 12 semanas desde la confirmación del pedido.",
+  "ship_t1_lab":"Plazo de entrega estimado:",
+  "ship_t1_def":"10 a 12 semanas desde la confirmación del pedido.",
   "ship_t2":"La fecha concreta se confirmará por escrito para cada pedido, conforme al Incoterm acordado.",
   "validity":"Validez de la oferta: 10 días desde la fecha de emisión.",
   "prod_title":"Producto y garantías","w_material":"Garantía de material","w_power":"Garantía de potencia lineal","w_years":"años",
@@ -84,6 +86,8 @@ T = {
   "pay3":"Bank details:",
   "ship_title":"Shipment terms","ship_arr":"Agreed Incoterms:","ship_one":"Agreed Incoterm:",
   "ship_t1":"Estimated delivery time: 10 to 12 weeks from order confirmation.",
+  "ship_t1_lab":"Estimated delivery time:",
+  "ship_t1_def":"10 to 12 weeks from order confirmation.",
   "ship_t2":"The exact date will be confirmed in writing for each order, in accordance with the agreed Incoterm.",
   "validity":"Offer validity: 10 days from the issue date.",
   "prod_title":"Product and warranties","w_material":"Material warranty","w_power":"Linear power warranty","w_years":"years",
@@ -393,7 +397,18 @@ def generate(data, out_path):
         for ln in lines:
             para(d, "        • "+str(ln["incoterm"]), size=10, after=2)
         para(d,"",after=4)
-    para(d, "2.2   "+tr["ship_t1"], size=10, after=10)
+    # plazo de entrega: editable desde la hoja (columna PlazoEntrega); si viene vacio, el de siempre
+    _pe = str(data.get("plazo_entrega") or "").strip()
+    if _pe:
+        _low = _pe.lower()
+        if any(k in _low for k in ("plazo","entrega","delivery","lead time","shipment")):
+            _ship_t1 = _pe                             # frase completa escrita en la hoja
+        else:
+            _ship_t1 = tr["ship_t1_lab"]+" "+_pe       # solo el plazo: "8 a 10 semanas"
+        if not _ship_t1.endswith("."): _ship_t1 += "."
+    else:
+        _ship_t1 = tr["ship_t1_lab"]+" "+tr["ship_t1_def"]
+    para(d, "2.2   "+_ship_t1, size=10, after=10)
     para(d, "2.3   "+tr["validity"], size=10, after=16)
 
     # separacion antes de la aceptacion (hacia la parte inferior)
