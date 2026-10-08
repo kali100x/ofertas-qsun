@@ -54,6 +54,10 @@ T = {
   "h_totp":"Potencia total (Wp)","h_price":"Precio (€/Wp)","h_inco":"Incoterm","h_amount":"Importe sin IVA",
   "t_base":"Importe sin IVA","t_iva":"IVA 21%","t_total":"Total",
   "t_adv":"Anticipo 10%","t_bal":"Saldo 90% contra B/L",
+  "t_adv_f":"Anticipo {a}%","t_bal_f":"Saldo {b}% {resto}","t_pay_f":"Pago {resto}",
+  "pay_rest_def":"contra presentación del conocimiento de embarque (B/L)","pay_rest_short":"contra B/L","pay_rest_adv":"por adelantado",
+  "pay1_adv":"El comprador pagará el {a}% del importe total por adelantado y el {b}% restante {resto}.",
+  "pay1_full":"El comprador pagará el 100% del importe total {resto}.",
   "pay_title":"Condiciones de pago",
   "pay1":"El comprador pagará el 10% del importe total por adelantado y el 90% restante contra presentación del conocimiento de embarque (B/L).",
   "pay2":"El comprador asume los gastos bancarios del país emisor. El vendedor asume los gastos bancarios del país receptor.",
@@ -80,6 +84,10 @@ T = {
   "h_totp":"Total power (Wp)","h_price":"Price (€/Wp)","h_inco":"Incoterm","h_amount":"Amount excl. VAT",
   "t_base":"Amount excl. VAT","t_iva":"VAT 21%","t_total":"Total",
   "t_adv":"10% advance payment","t_bal":"90% balance against B/L",
+  "t_adv_f":"{a}% advance payment","t_bal_f":"{b}% balance {resto}","t_pay_f":"Payment {resto}",
+  "pay_rest_def":"against presentation of the Bill of Lading (B/L)","pay_rest_short":"against B/L","pay_rest_adv":"in advance",
+  "pay1_adv":"The Buyer shall pay {a}% of the total amount in advance and the remaining {b}% {resto}.",
+  "pay1_full":"The Buyer shall pay 100% of the total amount {resto}.",
   "pay_title":"Payment terms",
   "pay1":"The Buyer shall pay 10% of the total amount in advance and the remaining 90% against presentation of the Bill of Lading (B/L).",
   "pay2":"The Buyer shall bear all bank charges incurred in the remitting country. The Seller shall bear all bank charges incurred in the receiving country.",
@@ -249,6 +257,26 @@ def generate(data, out_path):
     tr=T[lang]; b=BRANDS[data["marca"]]
     RED=RGBColor(0xC0,0x00,0x00)
 
+    # ---- condiciones de pago editables desde la hoja ----
+    # anticipo: % de reserva (vacio = 10, como siempre; 0 = sin reserva; 100 = todo por adelantado)
+    _a=data.get("anticipo","")
+    if _a is None or str(_a).strip()=="":
+        adv_pct=10.0
+    else:
+        try: adv_pct=float(str(_a).strip().replace("%","").replace(",","."))
+        except ValueError: adv_pct=10.0
+    adv_pct=max(0.0,min(100.0,adv_pct))
+    has_adv=(0.0<adv_pct<100.0)
+    # pago_resto: cuando se paga el resto ("a 7 dias de la recepcion", "contra B/L", ...)
+    pay_rest=str(data.get("pago_resto") or "").strip().rstrip(".")
+    pay_rest_row=pay_rest                      # version corta para el resumen economico
+    if not pay_rest:
+        if adv_pct>=100.0: pay_rest=pay_rest_row=tr["pay_rest_adv"]
+        else: pay_rest=tr["pay_rest_def"]; pay_rest_row=tr["pay_rest_short"]
+    def _pct(x):
+        return (f"{x:.2f}".rstrip("0").rstrip(".") or "0").replace(".",",")
+    adv_lbl=_pct(adv_pct); bal_lbl=_pct(100.0-adv_pct)
+
     # tipo: proforma cambia titulo, subtitulo y pie
     is_prof = str(data.get("tipo","")).strip().lower().startswith("proforma")
     doc_title   = tr["title_proforma"]    if is_prof else tr["title"]
@@ -302,7 +330,7 @@ def generate(data, out_path):
     n_items=len(lines)
     pad=0                            # sin filas en blanco (la tabla ya es protagonista)
     n_prod=n_items+pad
-    n_sum=5                          # importe sin IVA, IVA, total, anticipo, saldo
+    n_sum=5 if has_adv else 4        # base, IVA, total (+ anticipo y saldo, o linea de vencimiento)
     tb=d.add_table(rows=1+n_prod+n_sum, cols=7)
     hdr=[tr["h_item"],tr["h_modp"],tr["h_qty"],tr["h_totp"],tr["h_price"],tr["h_inco"],tr["h_amount"]]
     for j,h in enumerate(hdr):
@@ -321,11 +349,20 @@ def generate(data, out_path):
     # resumen economico
     if single:
         iva=round(base*0.21,2); total=round(base+iva,2)
-        adv=round(total*0.10,2); bal=round(total-adv,2)     # saldo = total - anticipo
-        svals=[nmoney(base),nmoney(iva),nmoney(total),nmoney(adv),nmoney(bal)]
+        if has_adv:
+            adv=round(total*adv_pct/100.0,2); bal=round(total-adv,2)   # saldo = total - anticipo
+            svals=[nmoney(base),nmoney(iva),nmoney(total),nmoney(adv),nmoney(bal)]
+        else:
+            svals=[nmoney(base),nmoney(iva),nmoney(total),nmoney(total)]
     else:
-        svals=["—","—","—","—","—"]
-    slabels=[tr["t_base"],tr["t_iva"],tr["t_total"],tr["t_adv"],tr["t_bal"]]
+        svals=["—"]*n_sum
+    if has_adv:
+        slabels=[tr["t_base"],tr["t_iva"],tr["t_total"],
+                 tr["t_adv_f"].format(a=adv_lbl),
+                 tr["t_bal_f"].format(b=bal_lbl,resto=pay_rest_row)]
+    else:
+        slabels=[tr["t_base"],tr["t_iva"],tr["t_total"],
+                 tr["t_pay_f"].format(resto=pay_rest_row)]
     set_widths(tb, [3.6, 1.8, 1.8, 2.1, 1.7, 2.1, 3.4], fixed=True)   # 16.5 cm
     r0=1+n_prod
     for i in range(n_sum):
@@ -375,7 +412,9 @@ def generate(data, out_path):
 
     # pagina 2: empieza en Condiciones de pago (salto antes del titulo)
     section_title(d, tr["pay_title"], size=11.5, after=10, page_break=True)
-    para(d, "1.1   "+tr["pay1"], size=10, after=10)
+    _pay1=(tr["pay1_adv"].format(a=adv_lbl,b=bal_lbl,resto=pay_rest) if has_adv
+           else tr["pay1_full"].format(resto=pay_rest))
+    para(d, "1.1   "+_pay1, size=10, after=10)
     para(d, "1.2   "+tr["pay2"], size=10, after=10)
     para(d, "1.3   "+tr["pay3"], size=10, after=6)
     bt=d.add_table(rows=len(b["bank"]),cols=2)

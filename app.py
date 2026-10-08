@@ -252,6 +252,8 @@ async def generar(request: Request, x_api_key: str = Header(default="")):
         "garantia_potencia": raw.get("garantia_potencia", 30),
         "ficha_adjunta": bool(raw.get("ficha_adjunta")),
         "plazo_entrega": str(raw.get("plazo_entrega") or raw.get("plazo") or "").strip(),
+        "anticipo": raw.get("anticipo", ""),
+        "pago_resto": str(raw.get("pago_resto") or "").strip(),
         "fecha": str(raw.get("fecha") or "").strip(),
         "num_oferta": str(raw.get("num_oferta") or raw.get("num") or "").strip(),
         "comprador": {
