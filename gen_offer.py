@@ -58,6 +58,8 @@ T = {
   "pay_rest_def":"contra presentación del conocimiento de embarque (B/L)","pay_rest_short":"contra B/L","pay_rest_adv":"por adelantado",
   "pay1_adv":"El comprador pagará el {a}% del importe total por adelantado y el {b}% restante {resto}.",
   "pay1_full":"El comprador pagará el 100% del importe total {resto}.",
+  "pay1_plain":"El comprador deberá pagar el importe total especificado en la presente {doc}.",
+  "doc_oferta":"oferta","doc_proforma":"factura proforma",
   "pay_title":"Condiciones de pago",
   "pay1":"El comprador pagará el 10% del importe total por adelantado y el 90% restante contra presentación del conocimiento de embarque (B/L).",
   "pay2":"El comprador asume los gastos bancarios del país emisor. El vendedor asume los gastos bancarios del país receptor.",
@@ -88,6 +90,8 @@ T = {
   "pay_rest_def":"against presentation of the Bill of Lading (B/L)","pay_rest_short":"against B/L","pay_rest_adv":"in advance",
   "pay1_adv":"The Buyer shall pay {a}% of the total amount in advance and the remaining {b}% {resto}.",
   "pay1_full":"The Buyer shall pay 100% of the total amount {resto}.",
+  "pay1_plain":"The Buyer shall pay the total amount specified in this {doc}.",
+  "doc_oferta":"quotation","doc_proforma":"proforma invoice",
   "pay_title":"Payment terms",
   "pay1":"The Buyer shall pay 10% of the total amount in advance and the remaining 90% against presentation of the Bill of Lading (B/L).",
   "pay2":"The Buyer shall bear all bank charges incurred in the remitting country. The Seller shall bear all bank charges incurred in the receiving country.",
@@ -413,9 +417,15 @@ def generate(data, out_path):
     # pagina 2: empieza en Condiciones de pago (salto antes del titulo)
     section_title(d, tr["pay_title"], size=11.5, after=10, page_break=True)
     # en la clausula 1.1 sobra un "pago" inicial ("pago a 7 dias" -> "a 7 dias")
-    _resto_txt=re.sub(r'^(el\s+)?pago\s*(:|de)?\s*','',pay_rest,flags=re.I) or pay_rest
-    _pay1=(tr["pay1_adv"].format(a=adv_lbl,b=bal_lbl,resto=_resto_txt) if has_adv
-           else tr["pay1_full"].format(resto=_resto_txt))
+    _resto_txt=re.sub(r'^(el\s+)?pago\s*(:|de)?\s*','',pay_rest,flags=re.I).strip()
+    if has_adv:
+        # sin texto util, el resto se paga como siempre (contra B/L)
+        _pay1=tr["pay1_adv"].format(a=adv_lbl,b=bal_lbl,resto=_resto_txt or tr["pay_rest_def"])
+    elif _resto_txt:
+        _pay1=tr["pay1_full"].format(resto=_resto_txt)
+    else:
+        # PagoResto = "pago" a secas: frase neutra, sin decir cuando se paga
+        _pay1=tr["pay1_plain"].format(doc=tr["doc_proforma"] if is_prof else tr["doc_oferta"])
     para(d, "1.1   "+_pay1, size=10, after=10)
     para(d, "1.2   "+tr["pay2"], size=10, after=10)
     para(d, "1.3   "+tr["pay3"], size=10, after=6)
