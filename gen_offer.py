@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # Generador de ofertas Q-SUN / SEG  (bilingue ES/EN, formato numerico espanol)
-import sys, json, os
+import sys, json, os, re
 from docx import Document
 from docx.shared import Pt, Cm, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -54,7 +54,7 @@ T = {
   "h_totp":"Potencia total (Wp)","h_price":"Precio (€/Wp)","h_inco":"Incoterm","h_amount":"Importe sin IVA",
   "t_base":"Importe sin IVA","t_iva":"IVA 21%","t_total":"Total",
   "t_adv":"Anticipo 10%","t_bal":"Saldo 90% contra B/L",
-  "t_adv_f":"Anticipo {a}%","t_bal_f":"Saldo {b}% {resto}","t_pay_f":"Pago {resto}",
+  "t_adv_f":"Anticipo {a}%","t_bal_f":"Saldo {b}% {resto}","t_pay_f":"Saldo 100% {resto}",
   "pay_rest_def":"contra presentación del conocimiento de embarque (B/L)","pay_rest_short":"contra B/L","pay_rest_adv":"por adelantado",
   "pay1_adv":"El comprador pagará el {a}% del importe total por adelantado y el {b}% restante {resto}.",
   "pay1_full":"El comprador pagará el 100% del importe total {resto}.",
@@ -84,7 +84,7 @@ T = {
   "h_totp":"Total power (Wp)","h_price":"Price (€/Wp)","h_inco":"Incoterm","h_amount":"Amount excl. VAT",
   "t_base":"Amount excl. VAT","t_iva":"VAT 21%","t_total":"Total",
   "t_adv":"10% advance payment","t_bal":"90% balance against B/L",
-  "t_adv_f":"{a}% advance payment","t_bal_f":"{b}% balance {resto}","t_pay_f":"Payment {resto}",
+  "t_adv_f":"{a}% advance payment","t_bal_f":"{b}% balance {resto}","t_pay_f":"100% balance {resto}",
   "pay_rest_def":"against presentation of the Bill of Lading (B/L)","pay_rest_short":"against B/L","pay_rest_adv":"in advance",
   "pay1_adv":"The Buyer shall pay {a}% of the total amount in advance and the remaining {b}% {resto}.",
   "pay1_full":"The Buyer shall pay 100% of the total amount {resto}.",
@@ -412,8 +412,10 @@ def generate(data, out_path):
 
     # pagina 2: empieza en Condiciones de pago (salto antes del titulo)
     section_title(d, tr["pay_title"], size=11.5, after=10, page_break=True)
-    _pay1=(tr["pay1_adv"].format(a=adv_lbl,b=bal_lbl,resto=pay_rest) if has_adv
-           else tr["pay1_full"].format(resto=pay_rest))
+    # en la clausula 1.1 sobra un "pago" inicial ("pago a 7 dias" -> "a 7 dias")
+    _resto_txt=re.sub(r'^(el\s+)?pago\s*(:|de)?\s*','',pay_rest,flags=re.I) or pay_rest
+    _pay1=(tr["pay1_adv"].format(a=adv_lbl,b=bal_lbl,resto=_resto_txt) if has_adv
+           else tr["pay1_full"].format(resto=_resto_txt))
     para(d, "1.1   "+_pay1, size=10, after=10)
     para(d, "1.2   "+tr["pay2"], size=10, after=10)
     para(d, "1.3   "+tr["pay3"], size=10, after=6)
