@@ -60,7 +60,7 @@ T = {
   "supply":"Detalle del suministro",
   "h_item":"Artículo","h_modp":"Potencia módulo (Wp)","h_qty":"Cantidad (uds)",
   "h_totp":"Potencia total (Wp)","h_price":"Precio (€/Wp)","h_inco":"Incoterm","h_amount":"Importe sin IVA",
-  "t_base":"Importe sin IVA","t_iva":"IVA 21%","t_total":"Total",
+  "t_base":"Importe sin IVA","t_iva":"IVA 21%","t_iva_f":"IVA {p}%","t_total":"Total",
   "t_adv":"Anticipo 10%","t_bal":"Saldo 90% contra B/L",
   "t_adv_f":"Anticipo {a}%","t_bal_f":"Saldo {b}% {resto}","t_pay_f":"Saldo 100% {resto}",
   "pay_rest_def":"contra presentación del conocimiento de embarque (B/L)","pay_rest_short":"contra B/L","pay_rest_adv":"por adelantado",
@@ -92,7 +92,7 @@ T = {
   "supply":"Supply details",
   "h_item":"Item","h_modp":"Module power (Wp)","h_qty":"Quantity (pcs)",
   "h_totp":"Total power (Wp)","h_price":"Price (€/Wp)","h_inco":"Incoterm","h_amount":"Amount excl. VAT",
-  "t_base":"Amount excl. VAT","t_iva":"VAT 21%","t_total":"Total",
+  "t_base":"Amount excl. VAT","t_iva":"VAT 21%","t_iva_f":"VAT {p}%","t_total":"Total",
   "t_adv":"10% advance payment","t_bal":"90% balance against B/L",
   "t_adv_f":"{a}% advance payment","t_bal_f":"{b}% balance {resto}","t_pay_f":"100% balance {resto}",
   "pay_rest_def":"against presentation of the Bill of Lading (B/L)","pay_rest_short":"against B/L","pay_rest_adv":"in advance",
@@ -289,6 +289,11 @@ def generate(data, out_path):
     def _pct(x):
         return (f"{x:.2f}".rstrip("0").rstrip(".") or "0").replace(".",",")
     adv_lbl=_pct(adv_pct); bal_lbl=_pct(100.0-adv_pct)
+    # tipo de IVA: vacio = 21% como siempre; 0 = exenta (exportacion / intracomunitaria)
+    _iv=data.get("iva")
+    try: iva_pct=21.0 if _iv is None or str(_iv).strip()=="" else float(str(_iv).strip().replace("%","").replace(",","."))
+    except ValueError: iva_pct=21.0
+    iva_pct=max(0.0,min(100.0,iva_pct)); iva_lbl=_pct(iva_pct)
 
     # tipo: proforma cambia titulo, subtitulo y pie
     is_prof = str(data.get("tipo","")).strip().lower().startswith("proforma")
@@ -361,7 +366,7 @@ def generate(data, out_path):
             set_cell(tb.rows[1+i].cells[j],v,size=sizes[j],align=aligns[j],bold=bolds[j])
     # resumen economico
     if single:
-        iva=round(base*0.21,2); total=round(base+iva,2)
+        iva=round(base*iva_pct/100.0,2); total=round(base+iva,2)
         if has_adv:
             adv=round(total*adv_pct/100.0,2); bal=round(total-adv,2)   # saldo = total - anticipo
             svals=[nmoney(base),nmoney(iva),nmoney(total),nmoney(adv),nmoney(bal)]
@@ -370,11 +375,11 @@ def generate(data, out_path):
     else:
         svals=["—"]*n_sum
     if has_adv:
-        slabels=[tr["t_base"],tr["t_iva"],tr["t_total"],
+        slabels=[tr["t_base"],tr["t_iva_f"].format(p=iva_lbl),tr["t_total"],
                  tr["t_adv_f"].format(a=adv_lbl),
                  tr["t_bal_f"].format(b=bal_lbl,resto=pay_rest_row)]
     else:
-        slabels=[tr["t_base"],tr["t_iva"],tr["t_total"],
+        slabels=[tr["t_base"],tr["t_iva_f"].format(p=iva_lbl),tr["t_total"],
                  tr["t_pay_f"].format(resto=pay_rest_row)]
     set_widths(tb, [3.6, 1.8, 1.8, 2.1, 1.7, 2.1, 3.4], fixed=True)   # 16.5 cm
     r0=1+n_prod
