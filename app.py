@@ -216,6 +216,19 @@ def _num(v, default=0):
         return default
 
 
+def _warr(v, default):
+    """Anos de garantia desde la hoja: vacio = el de siempre, 0 = no mostrar esa casilla."""
+    if v is None:
+        return default
+    s = str(v).strip()
+    if s == "":
+        return default
+    n = _num(s, None)
+    if n is None:
+        return s                       # texto libre, p.ej. "12 + 12"
+    return int(n) if float(n).is_integer() else n
+
+
 def _build_lines(data):
     if data.get("lineas"):
         out = []
@@ -248,8 +261,8 @@ async def generar(request: Request, x_api_key: str = Header(default="")):
         "tipo": (raw.get("tipo") or "quotation").strip(),
         "idioma": (raw.get("idioma") or "es").strip(),
         "descripcion": (raw.get("descripcion") or raw.get("tecnologia") or "").strip(),
-        "garantia_material": raw.get("garantia_material", 15),
-        "garantia_potencia": raw.get("garantia_potencia", 30),
+        "garantia_material": _warr(raw.get("garantia_material"), None),
+        "garantia_potencia": _warr(raw.get("garantia_potencia"), None),
         "ficha_adjunta": bool(raw.get("ficha_adjunta")),
         "plazo_entrega": str(raw.get("plazo_entrega") or raw.get("plazo") or "").strip(),
         "anticipo": raw.get("anticipo", ""),
