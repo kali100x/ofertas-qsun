@@ -23,7 +23,7 @@ W = 16.5                  # ancho util en cm (carta, margenes 2,5 cm)
 
 BRANDS = {
  "Q-SUN": {
-   "logo": "qsun_image1.png", "logo_w": 6.0,
+   "logo": "qsun_image1.png", "logo_w": 6.0, "warr": (15, 30),
    "seller": {"name":"JORESP ENERGY, S.L.","add":"Independencia, 24-26\n50004 Zaragoza",
               "contact":"Santiago Mediano García","tel":"+34 606 423 097","cif":"B99551350",
               "email":"s.mediano@joresp.net\nsantiago.mediano@q-sunsolar.group"},
@@ -32,7 +32,15 @@ BRANDS = {
             ("Dirección banco","Camino del Pilón, 61, 50011 Zaragoza"),("Divisa","EUR")],
  },
  "SEG": {
-   "logo": "seg_image5.png", "logo_w": 4.0,
+   "logo": "seg_image5.png", "logo_w": 4.0, "warr": (15, 30),
+   "seller": {"name":"JORESP ENERGY, S.L.","add":"Independencia, 24-26\n50004 Zaragoza",
+              "contact":"Santiago Mediano García","tel":"+34 606 423 097","cif":"B99551350",
+              "email":"s.mediano@joresp.net"},
+   "bank": [("Banco","Banco Santander"),("Titular","Joresp Energy, S.L."),
+            ("IBAN","ES80 0049 4470 3523 1003 7467"),("BIC/SWIFT","BSCHESMMXXX"),
+            ("Dirección banco","Camino del Pilón, 61, 50011 Zaragoza"),("Divisa","EUR")],
+ }, "ZNSHINE": {
+   "logo": "znshine_logo.png", "logo_w": 4.0, "warr": (12, 30),
    "seller": {"name":"JORESP ENERGY, S.L.","add":"Independencia, 24-26\n50004 Zaragoza",
               "contact":"Santiago Mediano García","tel":"+34 606 423 097","cif":"B99551350",
               "email":"s.mediano@joresp.net"},
@@ -195,7 +203,8 @@ def norm_marca(v):
     mk=str(v or "").strip().upper().replace(" ","")
     if mk in ("Q-SUN","QSUN"): return "Q-SUN"
     if mk=="SEG": return "SEG"
-    raise ValueError(f"Marca desconocida: '{v}'. Debe ser Q-SUN o SEG.")
+    if mk in ("ZNSHINE","ZNSHINESOLAR","ZN-SHINE"): return "ZNSHINE"
+    raise ValueError(f"Marca desconocida: '{v}'. Debe ser Q-SUN, SEG o ZNSHINE.")
 
 def norm_idioma(v):
     x=str(v or "es").strip().lower()
@@ -392,7 +401,10 @@ def generate(data, out_path):
     prod_prefix = f"{lines[0]['item']} ({nint(lines[0]['peak'])} W) " if lines else ""
     prod_line = (prod_prefix + str(data.get("descripcion") or "")).strip()
     if prod_line: para(d, prod_line, size=10, after=12)     # modelo (Wp) + descripcion, misma linea, sin negrita
-    gm = data.get("garantia_material", 15); gp = data.get("garantia_potencia", 30)
+    _wd = b.get("warr", (15, 30))
+    gm = data.get("garantia_material"); gp = data.get("garantia_potencia")
+    if gm is None: gm = _wd[0]
+    if gp is None: gp = _wd[1]
     wr=[(tr["w_material"],gm),(tr["w_power"],gp)]
     wr=[(lab,y) for lab,y in wr if y not in (None,"",0)]
     if wr:
