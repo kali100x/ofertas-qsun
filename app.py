@@ -265,6 +265,7 @@ async def generar(request: Request, x_api_key: str = Header(default="")):
         "garantia_potencia": _warr(raw.get("garantia_potencia"), None),
         "ficha_adjunta": bool(raw.get("ficha_adjunta")),
         "plazo_entrega": str(raw.get("plazo_entrega") or raw.get("plazo") or "").strip(),
+        "iva": raw.get("iva", ""),
         "anticipo": raw.get("anticipo", ""),
         "pago_resto": str(raw.get("pago_resto") or "").strip(),
         "fecha": str(raw.get("fecha") or "").strip(),
@@ -287,7 +288,13 @@ async def generar(request: Request, x_api_key: str = Header(default="")):
         ln = data["lineas"][0]
         p = round(float(ln["precio"]), 4)              # mismo redondeo que el documento
         base = ln["pcs"] * ln["peak"] * p
-        iva = round(base * 0.21, 2)
+        _iv = data.get("iva")
+        try:
+            _rate = 21.0 if _iv is None or str(_iv).strip() == "" else float(str(_iv).strip().replace("%", "").replace(",", "."))
+        except ValueError:
+            _rate = 21.0
+        _rate = max(0.0, min(100.0, _rate))
+        iva = round(base * _rate / 100.0, 2)
         total = round(base + iva, 2)                   # base + IVA (igual que gen_offer)
 
     workdir = tempfile.mkdtemp()
