@@ -64,13 +64,13 @@ T = {
   "t_adv":"Anticipo 10%","t_bal":"Saldo 90% contra B/L",
   "t_adv_f":"Anticipo {a}%","t_bal_f":"Saldo {b}% {resto}","t_pay_f":"Saldo 100% {resto}",
   "pay_rest_def":"contra presentación del conocimiento de embarque (B/L)","pay_rest_short":"contra B/L","pay_rest_adv":"por adelantado",
-  "pay1_adv":"El comprador pagará el {a}% del importe total por adelantado y el {b}% restante {resto}.",
-  "pay1_full":"El comprador pagará el 100% del importe total {resto}.",
-  "pay1_plain":"El comprador deberá pagar el importe total especificado en la presente {doc}.",
+  "pay1_adv":"Para formalizar y reservar el pedido, el comprador abonará por adelantado el {a} % del importe total, en un plazo máximo de 10 días desde la fecha de emisión de la oferta. El {b} % restante se abonará {resto}.",
+  "pay1_full":"Para formalizar el pedido, el comprador deberá confirmar la aceptación de la presente {doc} en un plazo máximo de 10 días desde su fecha de emisión. El 100 % del importe total se abonará {resto}.",
+  "pay1_plain":"Para formalizar el pedido, el comprador deberá confirmar la aceptación de la presente {doc} en un plazo máximo de 10 días desde su fecha de emisión. El comprador abonará el importe total especificado en la presente {doc}.",
   "doc_oferta":"oferta","doc_proforma":"factura proforma",
   "pay_title":"Condiciones de pago",
   "pay1":"El comprador pagará el 10% del importe total por adelantado y el 90% restante contra presentación del conocimiento de embarque (B/L).",
-  "pay2":"El comprador asume los gastos bancarios del país emisor. El vendedor asume los gastos bancarios del país receptor.",
+  "pay2":"Los gastos y comisiones bancarias derivados de la transferencia en el país emisor correrán a cargo del comprador. Los correspondientes al país receptor correrán a cargo del vendedor.",
   "pay3":"Datos bancarios:",
   "ship_title":"Condiciones de entrega","ship_arr":"Incoterms acordados:","ship_one":"Incoterm acordado:",
   "ship_t1":"Plazo de entrega estimado: 10 a 12 semanas desde la confirmación del pedido.",
@@ -96,13 +96,13 @@ T = {
   "t_adv":"10% advance payment","t_bal":"90% balance against B/L",
   "t_adv_f":"{a}% advance payment","t_bal_f":"{b}% balance {resto}","t_pay_f":"100% balance {resto}",
   "pay_rest_def":"against presentation of the Bill of Lading (B/L)","pay_rest_short":"against B/L","pay_rest_adv":"in advance",
-  "pay1_adv":"The Buyer shall pay {a}% of the total amount in advance and the remaining {b}% {resto}.",
-  "pay1_full":"The Buyer shall pay 100% of the total amount {resto}.",
-  "pay1_plain":"The Buyer shall pay the total amount specified in this {doc}.",
+  "pay1_adv":"To confirm and reserve the order, the Buyer shall pay {a} % of the total amount in advance, within a maximum of 10 days from the issue date of this offer. The remaining {b} % shall be paid {resto}.",
+  "pay1_full":"To confirm the order, the Buyer shall accept this {doc} within a maximum of 10 days from its issue date. 100 % of the total amount shall be paid {resto}.",
+  "pay1_plain":"To confirm the order, the Buyer shall accept this {doc} within a maximum of 10 days from its issue date. The Buyer shall pay the total amount specified in this {doc}.",
   "doc_oferta":"quotation","doc_proforma":"proforma invoice",
   "pay_title":"Payment terms",
   "pay1":"The Buyer shall pay 10% of the total amount in advance and the remaining 90% against presentation of the Bill of Lading (B/L).",
-  "pay2":"The Buyer shall bear all bank charges incurred in the remitting country. The Seller shall bear all bank charges incurred in the receiving country.",
+  "pay2":"Bank charges and commissions arising from the transfer in the remitting country shall be borne by the Buyer. Those arising in the receiving country shall be borne by the Seller.",
   "pay3":"Bank details:",
   "ship_title":"Shipment terms","ship_arr":"Agreed Incoterms:","ship_one":"Agreed Incoterm:",
   "ship_t1":"Estimated delivery time: 10 to 12 weeks from order confirmation.",
@@ -439,7 +439,7 @@ def generate(data, out_path):
         # sin texto util, el resto se paga como siempre (contra B/L)
         _pay1=tr["pay1_adv"].format(a=adv_lbl,b=bal_lbl,resto=_resto_txt or tr["pay_rest_def"])
     elif _resto_txt:
-        _pay1=tr["pay1_full"].format(resto=_resto_txt)
+        _pay1=tr["pay1_full"].format(resto=_resto_txt,doc=tr["doc_proforma"] if is_prof else tr["doc_oferta"])
     else:
         # PagoResto = "pago" a secas: frase neutra, sin decir cuando se paga
         _pay1=tr["pay1_plain"].format(doc=tr["doc_proforma"] if is_prof else tr["doc_oferta"])
